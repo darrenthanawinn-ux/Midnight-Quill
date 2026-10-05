@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Midnight Quill - A Gloamwick Academy Mystery</title>
+<style>
+:root{--n0:#070818;--n1:#0d0f2b;--n2:#161943;--n3:#232763;--n4:#3f46a0;--amber:#ffb347;--amber2:#ffd98a;--ghost:#9fd8ff;--em:#2fbf8a;--cream:#f1e3c0;--u:3px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 30%,#14163a,#070818 70%);color:var(--cream);font-family:"Courier New",ui-monospace,monospace;overflow:hidden}
+#app{display:flex;height:100vh;width:100vw;gap:12px;padding:12px;align-items:center;justify-content:center}
+#stage{position:relative;flex:0 0 auto;border:3px solid var(--n4);box-shadow:0 0 0 3px #090a1f,0 0 50px #3f46a055;background:#000;overflow:hidden}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#side{width:292px;max-height:calc(100vh - 24px);overflow:auto;background:linear-gradient(#14163a,#0d0f2b);border:3px solid var(--n4);padding:10px 12px;font-size:12px;line-height:1.35}
+#side h1{font-size:15px;margin:0 0 2px;color:var(--amber);letter-spacing:2px;text-shadow:2px 2px #000}
+#side .sub{color:var(--ghost);font-size:11px;margin-bottom:8px}
+#side h2{font-size:11px;letter-spacing:2px;color:var(--em);margin:10px 0 4px;border-bottom:1px dashed #3f46a0;padding-bottom:2px}
+#objs{list-style:none;margin:0;padding:0}
+#objs li{padding:1px 0 1px 18px;position:relative;color:#9aa0d8}
+#objs li:before{content:"\2610";position:absolute;left:0;color:#6c72b8}
+#objs li.done{color:#5e6498;text-decoration:line-through}
+#objs li.done:before{content:"\2611";color:var(--em)}
+#objs li.now{color:var(--amber2);font-weight:bold}
+.spell{display:flex;justify-content:space-between;padding:2px 4px;margin:2px 0;border:1px solid #2c3070;background:#10123200}
+.spell.on{border-color:var(--amber);color:var(--amber2);box-shadow:0 0 8px #ffb34755}
+.spell.lock{color:#4c5290;border-style:dashed}
+.chip{display:inline-block;margin:2px 3px 2px 0;padding:2px 6px;border:1px solid var(--ghost);color:var(--ghost);background:#0b0d2a}
+.clue{margin:3px 0;padding:3px 5px;border-left:3px solid var(--amber);background:#0b0d2a}
+.clue b{color:var(--amber2)}.clue.red{border-left-color:#7a7fb0}.clue small{display:block;color:#aab0e8}
+.empty{color:#5a6094;font-style:italic}
+.row{display:flex;gap:6px;margin-top:10px}
+button{font:inherit;cursor:pointer;color:var(--cream);background:var(--n3);border:2px solid var(--n4);padding:5px 8px}
+button:hover{background:var(--n4);border-color:var(--amber)}
+.help{margin-top:10px;color:#8d93d0;font-size:11px}
+.help kbd{background:#0b0d2a;border:1px solid #3f46a0;padding:0 4px;color:var(--amber2)}
+#toast,#banner{position:absolute;left:50%;transform:translateX(-50%);padding:calc(var(--u)*1) calc(var(--u)*3);background:rgba(9,10,31,.92);border:calc(var(--u)*.5) solid var(--ghost);color:var(--cream);font-size:calc(var(--u)*3.6);opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:92%}
+#toast{top:calc(var(--u)*3)}
+#banner{top:calc(var(--u)*14);border-color:var(--amber);color:var(--amber2);letter-spacing:2px;font-size:calc(var(--u)*4)}
+#dlg{position:absolute;left:3%;right:3%;bottom:3%;background:rgba(9,10,31,.95);border:calc(var(--u)*.8) solid var(--amber);padding:calc(var(--u)*2) calc(var(--u)*3);font-size:calc(var(--u)*4.2);line-height:1.35;min-height:calc(var(--u)*26);box-shadow:0 0 0 calc(var(--u)*.6) #000;z-index:5}
+#dname{display:inline-block;margin:calc(var(--u)*-5) 0 calc(var(--u)*1);padding:0 calc(var(--u)*2);background:var(--amber);color:#1a1020;font-weight:bold;letter-spacing:1px}
+#dtext.nar{color:var(--ghost);font-style:italic}
+#dch button{display:block;width:100%;text-align:left;margin-top:calc(var(--u)*1);font-size:calc(var(--u)*3.8);padding:calc(var(--u)*1) calc(var(--u)*2)}
+#dch button.sel{background:var(--n4);border-color:var(--amber);color:var(--amber2)}
+#dhint{position:absolute;right:calc(var(--u)*3);bottom:calc(var(--u)*1);color:var(--amber);font-size:calc(var(--u)*3.4);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.2}}
+.hide{display:none!important}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,6,22,.88);z-index:9;text-align:center;padding:calc(var(--u)*4)}
+.overlay .panel{max-width:94%;max-height:96%;overflow:auto;border:calc(var(--u)*.8) solid var(--amber);background:#0d0f2b;padding:calc(var(--u)*4);font-size:calc(var(--u)*3.6);line-height:1.4}
+.overlay h1{margin:0 0 calc(var(--u)*2);font-size:calc(var(--u)*9);color:var(--amber);letter-spacing:3px;text-shadow:calc(var(--u)*.6) calc(var(--u)*.6) #000}
+.overlay h2{margin:calc(var(--u)*3) 0 calc(var(--u)*1);color:var(--em);font-size:calc(var(--u)*4)}
+.overlay p{margin:calc(var(--u)*1.5) 0}
+.overlay button{font-size:calc(var(--u)*3.6);margin:calc(var(--u)*1)}
+.opt{display:block;width:100%;text-align:left;margin:calc(var(--u)*.8) 0}
+.opt.sel{background:#2a5a4a;border-color:var(--em)}
+#dmsg{min-height:calc(var(--u)*6);color:var(--amber2);margin:calc(var(--u)*2) 0}
+.blink{animation:bl 1.2s infinite;color:var(--amber2)}
+@media (max-width:900px){#app{flex-direction:column;height:auto;min-height:100vh;overflow:auto}html,body{overflow:auto}#side{width:100%;max-height:none}}
+</style>
+</head>
+<body>
+<noscript>This game needs JavaScript enabled.</noscript>
+<div id="app">
+  <div id="stage">
+    <canvas id="c" width="320" height="224"></canvas>
+    <div id="toast"></div>
+    <div id="banner"></div>
+    <div id="dlg" class="hide"><div id="dname"></div><div id="dtext"></div><div id="dch"></div><div id="dhint">&#9660; E</div></div>
+    <div id="title" class="overlay"><div class="panel">
+      <h1>THE MIDNIGHT QUILL</h1>
+      <p style="color:var(--ghost)">A Gloamwick Academy mystery</p>
+      <p>Curfew has rung. Professor Pimm's Whisperwrit Quill is gone, and a trail of glowing footprints is fading fast.<br>Sneak. Question. Cast. Deduce.</p>
+      <p class="blink">[ Click here or press ENTER to begin ]</p>
+      <p style="font-size:calc(var(--u)*3);color:#8d93d0">WASD / Arrows move &middot; E / Space interact &middot; 1 2 3 spells &middot; H hint &middot; M mute</p>
+    </div></div>
+    <div id="ded" class="overlay hide"><div class="panel" style="text-align:left;width:92%">
+      <h1 style="font-size:calc(var(--u)*7)">Who took the Quill?</h1>
+      <h2>The culprit is&hellip;</h2><div id="dsus"></div>
+      <h2>Because (choose at least three pieces of evidence)</h2><div id="dev"></div>
+      <div id="dmsg"></div>
+      <div style="text-align:center"><button id="dgo">Make the accusation</button><button id="dno">Not yet</button></div>
+    </div></div>
+    <div id="end" class="overlay hide"><div class="panel">
+      <h1 id="etitle">CASE CLOSED</h1><div id="ebody"></div><div id="estats"></div>
+      <p><button id="eagain">Play again</button></p>
+    </div></div>
+  </div>
+  <aside id="side">
+    <h1>THE MIDNIGHT QUILL</h1><div class="sub">Gloamwick Academy &middot; after curfew</div>
+    <h2>OBJECTIVES</h2><ul id="objs"></ul>
+    <h2>SPELLS</h2><div id="spells"></div>
+    <h2>INVENTORY</h2><div id="inv"></div>
+    <h2>CLUE LOG</h2><div id="clues"></div>
+    <div class="row"><button id="mute">&#9835; Music: on</button><button id="hintb">? Hint (H)</button></div>
+    <div id="caught" class="help">Times caught by Mr. Gristle: 0</div>
+    <div class="help"><kbd>WASD</kbd>/<kbd>Arrows</kbd> move &middot; <kbd>E</kbd>/<kbd>Space</kbd> talk &amp; examine &middot; <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> spells &middot; <kbd>M</kbd> mute</div>
+  </aside>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   THE MIDNIGHT QUILL - a Gloamwick Academy mystery
+   Single-file pixel adventure. All art is drawn procedurally
+   on canvas; all sound is synthesized with the Web Audio API.
+   ============================================================ */
+const T=16,GW=20,GH=14,VW=320,VH=224;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const dk=document.createElement('canvas');dk.width=VW;dk.height=VH;const dkc=dk.getContext('2d');
+const $=id=>document.getElementById(id);
+const rc=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));};
+const hash=n=>{n=Math.imul((n^61)^(n>>>16),0x45d9f3b);n=Math.imul(n^(n>>>16),0x45d9f3b);return(((n^(n>>>16))>>>0)/4294967295);};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ov=(ax,ay,aw,ah,bx,by,bw,bh)=>ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
+const L=(s,...a)=>a.map(t=>({s,t}));
+const N=(...a)=>a.map(t=>({s:'',t}));
+let t=0;
+
+/* ---------------- AUDIO ---------------- */
+const AU={ctx:null,master:null,mus:null,sfxg:null,muted:false,
+ init(){
+  if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume();return;}
+  const A=window.AudioContext||window.webkitAudioContext;if(!A)return;
+  this.ctx=new A();
+  this.master=this.ctx.createGain();this.master.gain.value=this.muted?0:0.5;this.master.connect(this.ctx.destination);
+  this.mus=this.ctx.createGain();this.mus.gain.value=0.33;this.mus.connect(this.master);
+  this.sfxg=this.ctx.createGain();this.sfxg.gain.value=0.7;this.sfxg.connect(this.master);
+  this.music();
+ },
+ tone(f,t0,d,type,vol,dest){
+  const c=this.ctx,o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t0);
+  g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t0+d);
+  o.connect(g);g.connect(dest);o.start(t0);o.stop(t0+d+0.05);
+ },
+ music(){
+  const c=this.ctx,sd=60/92/2,nf=m=>440*Math.pow(2,(m-69)/12);
+  const MEL=[62,0,65,0,69,0,67,65, 70,0,69,67,65,0,62,0, 67,0,70,0,74,0,72,70, 69,0,73,0,76,74,73,69];
+  const ARP=[[57,62,65],[58,62,65],[58,62,67],[57,61,64]],BASS=[38,34,43,45],PAT=[0,1,2,1,0,1,2,1];
+  let step=0,next=c.currentTime+0.2;
+  setInterval(()=>{
+   if(c.state==='suspended')return;
+   while(next<c.currentTime+0.4){
+    const bar=(step>>3)&3,i=step&7;
+    if(MEL[step])this.tone(nf(MEL[step]),next,sd*1.8,'square',0.06,this.mus);
+    this.tone(nf(ARP[bar][PAT[i]]),next,sd*0.9,'triangle',0.07,this.mus);
+    if(i===0||i===4)this.tone(nf(BASS[bar]),next,sd*3.6,'triangle',0.13,this.mus);
+    next+=sd;step=(step+1)%32;
+   }
+  },100);
+ },
+ sfx(n){
+  if(!this.ctx)return;const c=this.ctx,t0=c.currentTime,d=this.sfxg;
+  if(n==='blip')this.tone(660,t0,.08,'square',.12,d);
+  else if(n==='tick')this.tone(300+Math.random()*120,t0,.03,'square',.04,d);
+  else if(n==='clue'){[784,988,1318].forEach((f,i)=>this.tone(f,t0+i*.09,.2,'triangle',.2,d));}
+  else if(n==='spell'){const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(300,t0);o.frequency.exponentialRampToValueAtTime(1500,t0+.35);g.gain.setValueAtTime(.001,t0);g.gain.linearRampToValueAtTime(.1,t0+.05);g.gain.exponentialRampToValueAtTime(.001,t0+.4);o.connect(g);g.connect(d);o.start(t0);o.stop(t0+.45);}
+  else if(n==='unlock'){[523,659,784,1046].forEach((f,i)=>this.tone(f,t0+i*.07,.25,'sine',.22,d));}
+  else if(n==='caught'){this.tone(110,t0,.5,'sawtooth',.2,d);this.tone(82,t0+.15,.6,'sawtooth',.2,d);}
+  else if(n==='alert')this.tone(880,t0,.09,'square',.1,d);
+  else if(n==='no')this.tone(160,t0,.15,'square',.1,d);
+  else if(n==='win'){[523,659,784,1046,1318,1568].forEach((f,i)=>this.tone(f,t0+i*.12,.45,'triangle',.24,d));}
+ },
+ toggle(){this.muted=!this.muted;if(this.master)this.master.gain.value=this.muted?0:0.5;$('mute').innerHTML='&#9835; Music: '+(this.muted?'off':'on');}
+};
+
+/* ---------------- GAME STATE ---------------- */
+const S={mode:'title',room:'common',x:9.9*T,y:11*T,dir:'up',ft:0,moving:false,light:false,
+ spells:{},clues:{},items:{},caught:0,time:0,fadeTo:null,fv:0,fdir:1,cool:0,flags:{}};
+const F=S.flags;
+let G={};           // caretaker patrol states per room
+const PT=[];        // particles
+const keys={};
+
+const CLUES={
+ prints:{n:'Glowing footprints',d:'A shimmering trail from Pimm\'s office toward the library. Small prints with a strap-and-buckle heel mark.',s:1},
+ desk:{n:'Rune-locked desk',d:'The drawer was opened, not forced. Only Pimm or a prefect\'s master-rune could do that.',s:1},
+ dust:{n:'Glimmerdust trail',d:'A jar knocked over by someone leaving in a hurry. The dust sticks to shoes and glows.',s:1},
+ note:{n:'Torn note',d:'"Owlery at one bell. Send it far away before it tells. - C."',s:1},
+ ledger:{n:'Restricted ledger',d:'"C. Vale - Silencing Spells for Talking Objects." Borrowed this very evening.',s:1},
+ buckle:{n:'Silver buckle',d:'A prefect-crest buckle snapped off a shoe, hidden under the book cart.',s:1},
+ bram:{n:'Bram\'s testimony',d:'Bram saw a prefect with silver-buckled shoes hurry upstairs clutching a humming bundle.',s:1},
+ nib:{n:'Nib\'s tip',d:'Nib saw silver buckles tiptoe toward the Owlery stairs.',s:1},
+ cauldron:{n:'Smelly cauldron',d:'Toads and moon-mint. Bram\'s potions homework. Nothing to do with the theft.',s:0},
+ gristle:{n:'Gristle\'s patrol log',d:'He checked the office at midnight, all secure, then raised the alarm himself.',s:0}
+};
+const ITEMS={
+ sweet:{n:'Glow-Sweet',d:'A peppermint that glows faintly. Poltergeists adore them.'},
+ vial:{n:'Vial of Glimmerdust',d:'Scooped from Pimm\'s floor.'},
+ note:{n:'Torn Note',d:'Found under the armour.'},
+ buckle:{n:'Silver Buckle',d:'Prefect crest.'}
+};
+const SP={lucerna:{n:'Lucerna',k:'1',d:'Light'},reseris:{n:'Reseris',k:'2',d:'Unlock'},levitas:{n:'Levitas',k:'3',d:'Lift'}};
+
+function toast(msg,ms){const e=$('toast');e.textContent=msg;e.style.opacity=1;clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.opacity=0,ms||2800);}
+function banner(msg){const e=$('banner');e.textContent=msg;e.style.opacity=1;clearTimeout(banner.h);banner.h=setTimeout(()=>e.style.opacity=0,2600);}
+function clue(id){if(S.clues[id])return;S.clues[id]=1;AU.sfx('clue');toast('New clue: '+CLUES[id].n);refreshUI();}
+function give(id){if(S.items[id])return;S.items[id]=1;toast('Picked up: '+ITEMS[id].n);refreshUI();}
+function learn(k){S.spells[k]=1;AU.sfx('unlock');toast('Learned '+SP[k].n+'!  Press '+SP[k].k);refreshUI();}
+function sparks(x,y,c,n){for(let i=0;i<n;i++)PT.push({x,y,vx:(Math.random()-.5)*70,vy:-Math.random()*50-8,l:rnd(.4,.9),m:.9,c});}
+
+/* ---------------- DIALOGUE ENGINE ---------------- */
+const D={q:[],cur:null,full:'',pos:0,acc:0,ch:null,sel:0,active:false,done:null};
+const NAMECOL={Wren:'#ffb347',Odalys:'#9fd8ff',Bram:'#ff9a5a','Mr. Gristle':'#c9c9a0',Nib:'#d6f0ff',Cassian:'#7fe0b0','Dame Brunhild':'#e9b949'};
+function talk(script,done){S.mode='dialog';D.active=true;D.q=script.slice();D.done=done||null;D.ch=null;$('dlg').classList.remove('hide');nextEntry();}
+function nextEntry(){
+ while(true){
+  if(!D.q.length){endTalk();return;}
+  const e=D.q.shift();
+  if(typeof e==='function'){const r=e();if(Array.isArray(r))D.q.unshift(...r);else if(r)D.q.unshift(r);continue;}
+  if(e.c){
+   D.ch=e.c.filter(o=>!o.if||o.if());D.sel=0;renderChoices();return;
+  }
+  D.cur=e;D.full=e.t;D.pos=0;D.acc=0;D.ch=null;
+  const n=$('dname');n.textContent=e.s||'';n.style.display=e.s?'inline-block':'none';n.style.background=NAMECOL[e.s]||'#ffb347';
+  $('dtext').className=e.s?'':'nar';$('dtext').textContent='';$('dch').innerHTML='';$('dhint').style.visibility='hidden';
+  return;
+ }
+}
+function renderChoices(){
+ $('dhint').style.visibility='hidden';
+ $('dch').innerHTML=D.ch.map((o,i)=>'<button data-i="'+i+'" class="'+(i===D.sel?'sel':'')+'">'+(i+1)+'. '+o.t+'</button>').join('');
+ [...$('dch').children].forEach(b=>b.onclick=()=>pick(+b.dataset.i));
+}
+function pick(i){
+ const o=D.ch[i];if(!o)return;AU.sfx('blip');D.ch=null;$('dch').innerHTML='';
+ if(o.f)o.f();
+ if(o.r)D.q.unshift(...(Array.isArray(o.r)?o.r:[o.r]));
+ nextEntry();
+}
+function advance(){
+ if(D.ch){pick(D.sel);return;}
+ if(D.pos<D.full.length){D.pos=D.full.length;$('dtext').textContent=D.full;$('dhint').style.visibility='visible';return;}
+ AU.sfx('blip');nextEntry();
+}
+function endTalk(){
+ D.active=false;$('dlg').classList.add('hide');
+ if(S.mode==='dialog')S.mode='play';
+ const d=D.done;D.done=null;if(d)d();
+}
+const ex=(...a)=>N(...a);
+
+/* ---------------- DIALOGUE SCRIPTS ---------------- */
+function odalysMenu(){return{c:[
+ {t:'"What does the Quill actually do?"',r:[...L('Odalys','It listens, then writes down the truth of whatever is said near it. Honest words only. Pimm keeps it locked up because people say embarrassing things around it.','Whoever took it had a very good reason... or a very bad one.'),()=>[odalysMenu()]]},
+ {t:'"Who could open Pimm\'s desk?"',r:[...L('Odalys','The desk is rune-locked. Only Pimm and the prefects\' master-runes open it. Mr. Gristle has the office key but not the rune.'),()=>{F.rune=1;return[odalysMenu()];}]},
+ {t:'"Any advice for sneaking?"',r:[...L('Odalys','Mr. Gristle patrols the corridor and the library. He faces the way he walks, so duck into a dark alcove and keep your light OFF as he passes. A lit wand can be seen from far away.'),()=>[odalysMenu()]]},
+ {t:'"I need a hint."',r:[()=>L('Odalys',hint()),()=>[odalysMenu()]]},
+ {t:'"I\'m on it."',r:L('Odalys','Good luck, Wren. Be careful!')}
+]};}
+function odalysTalk(){
+ if(!F.odalys){
+  return[...L('Odalys','Wren! Thank goodness. Shh, keep your voice down.',
+   'Someone broke into Professor Pimm\'s office and took the Whisperwrit Quill. The one that writes down every honest word spoken near it.',
+   'I crept up and saw glowing footprints leading down the third-floor corridor. I\'m hopeless at sneaking, though. You are not.'),
+   ()=>{F.odalys=1;learn('lucerna');refreshUI();return N('Odalys presses a warm charm into your palm. You learned LUCERNA! Press 1 to light your wand-tip.');},
+   ...L('Odalys','Careful, light helps you see but it helps Mr. Gristle see you, too. The corridor is south, through the big door.'),
+   ()=>[odalysMenu()]];
+ }
+ return[...L('Odalys','Any luck?'),()=>[odalysMenu()]];
+}
+function bramHelp(){return[...L('Bram','...Is it that obvious? Fine. I saw something tonight.',
+  'A prefect, silver buckles on his shoes, hurrying upstairs with a bundle in his arms. The bundle was... humming? Whispering? I didn\'t say anything, he\'s a prefect and I was out of bed!'),
+  ()=>{clue('bram');F.bram=2;},
+  ...L('Bram','Here, borrowed this from a Seventh Year. It\'s the unlocking charm, RESERIS. Try it on a stubborn door.'),
+  ()=>{learn('reseris');},
+  ...L('Bram','Go get that thief, Wren!')];}
+function bramTalk(){
+ const st=F.bram||0;
+ if(st===2)return L('Bram','Honestly, thanks for believing me. Go get that thief!');
+ if(st===1)return[...L('Bram','*arms crossed* What do you want?'),{c:[
+  {t:'"I\'m sorry I accused you."',r:[...L('Bram','...Fine. I\'d be cross too.'),...bramHelp()]},
+  {t:'Leave him be.',r:[]}]}];
+ return[...L('Bram','Wren! You\'re up too?! I was only fetching a sweet from the bowl. Honest.','Did Odalys tell you? Professor Pimm\'s Quill is GONE!'),{c:[
+  {t:'"You look worried. Are you all right?"',r:bramHelp()},
+  {t:'"You\'re hiding something, Bram."',r:[...L('Bram','HEY! I\'m not a thief! ...Forget it.'),()=>{F.bram=1;}]}]}];
+}
+function riddleMenu(){return{c:[
+ {t:'"A secret."',r:[...L('Dame Brunhild','Ha! Secrets are heavy as lead. Try again.'),()=>[riddleMenu()]]},
+ {t:'"Breath."',r:[...L('Dame Brunhild','Breath! Quite right. You have a mind under that messy hair.','Say LEVITAS and flick your wrist upward. It lifts what is too heavy for hands, if you concentrate.'),()=>{learn('levitas');}]},
+ {t:'"A shadow."',r:[...L('Dame Brunhild','A shadow is not held but followed. Wrong. Again!'),()=>[riddleMenu()]]}
+]};}
+function portraitTalk(){
+ if(S.spells.levitas)return L('Dame Brunhild','Zzz... still awake, dear? Mind the suit of armour on the third floor. It does like to stand where it oughtn\'t.');
+ return[...L('Dame Brunhild','*snort* Hmm? A child out of bed at this hour? Oh, you want a charm, do you? Answer my riddle.',
+  '"I am light as a feather, yet the strongest wizard cannot hold me for long. What am I?"'),riddleMenu()];
+}
+function nibMenu(){return{c:[
+ {t:'"Have you seen anyone carrying the Quill?"',r:()=>nibAsk()},
+ {t:'"Tell me a joke, Nib."',r:[...L('Nib','Ooh, a customer! Why did the ghost go to the library? ...To check out the BOO-ks! Hee hee hee!','You laugh at that. You actually laugh. You\'re not so dull, lamb.'),()=>{F.nibLike=1;return[nibMenu()];}]},
+ {if:()=>S.items.sweet&&!S.clues.nib,t:'Offer him a Glow-Sweet',r:[...L('Nib','GLOW-SWEET! *crunch crunch* Mmm. For that I\'ll sing: silver buckles, silver buckles, tiptoeing up to the Owlery stairs, with a whispery parcel!'),()=>{delete S.items.sweet;clue('nib');refreshUI();},...L('Nib','Now scoot, before old Gristle finds us!')]},
+ {t:'Back away slowly.',r:[]}
+]};}
+function nibAsk(){
+ if(S.clues.nib)return L('Nib','Told you already! Silver buckles! Owlery! Shoo!');
+ if(F.nibLike)return[...L('Nib','Hmph. Since you made me laugh... silver buckles. Up the Owlery stairs. THAT is all you get without sweets!'),()=>{clue('nib');}];
+ return[...L('Nib','Maybe I have, maybe I haven\'t. Information costs, lamb. Sweets or jokes!'),()=>[nibMenu()]];
+}
+function nibTalk(){return[...L('Nib','Ooooh! A little lamb out of bed! Does Gristle know? Cackle!'),nibMenu()];}
+function cassianTalk(){
+ const n=Object.keys(S.clues).filter(k=>CLUES[k].s).length;
+ if(!F.metC){F.metC=1;
+  return[...L('Cassian','Wren Ashby? It is long past curfew. As a prefect I should write you up.','But it\'s a small thing. Go back to bed and I\'ll forget I saw you.'),cassianMenu(n)];}
+ return[...L('Cassian','Still here? Bed, Wren.'),cassianMenu(n)];
+}
+function cassianMenu(n){return{c:[
+ {t:'"You took the Whisperwrit Quill."',r:[()=>{
+   if(n<4)return[...L('Cassian','Me? What a thing to say. You have nothing, Wren. Come back when you do.'),()=>{toast('You need more evidence. Gather at least four clues that point to him.',3600);}];
+   return[...L('Cassian','...What makes you say that?'),()=>{setTimeout(openDeduce,50);}];}]},
+ {t:'"Goodnight, Cassian."',r:[]}
+]};}
+function finale(){
+ return[...L('Cassian','...You worked it out. I didn\'t think anyone would.'),
+ ...L('Cassian','Last week I copied part of my Transfiguration essay. Tonight I was in Pimm\'s office on prefect duty and I muttered it aloud, like a fool, right beside the Quill.',
+  'It wrote my confession in glowing ink. If Pimm reads that page I lose my badge, my apprenticeship, everything. So I panicked. I borrowed a silencing book and tried to post the Quill to my aunt in the far north.'),
+ ...N('Cassian\'s hands are shaking. Sorrel the owl hoots softly, the humming parcel still tied to her leg.'),
+ {c:[
+  {t:'"Return it yourself. I\'ll walk you to Professor Pimm."',r:[()=>{F.ending='honest';},...L('Cassian','...You\'d do that? Even after everything?','Alright. Honest words. That\'s what the Quill is for, isn\'t it.'),()=>{F.solved=1;refreshUI();setTimeout(endGame,300);}]},
+  {t:'"Give me the Quill. I\'ll take it to Pimm."',r:[()=>{F.ending='strict';},...L('Cassian','*hands over the parcel* Please. Just... tell him I\'m sorry.'),()=>{F.solved=1;refreshUI();setTimeout(endGame,300);}]}
+ ]}];
+}
+
+/* ---------------- DEDUCTION ---------------- */
+let dedSus=null,dedEv={};
+function openDeduce(){
+ S.mode='deduce';dedSus=null;dedEv={};$('dmsg').textContent='';
+ const sus=[['bram','Bram'],['gristle','Mr. Gristle'],['nib','Nib the poltergeist'],['cassian','Cassian Vale, the prefect']];
+ $('dsus').innerHTML=sus.map(s=>'<button class="opt" data-s="'+s[0]+'">'+s[1]+'</button>').join('');
+ [...$('dsus').children].forEach(b=>b.onclick=()=>{dedSus=b.dataset.s;[...$('dsus').children].forEach(x=>x.classList.toggle('sel',x===b));AU.sfx('blip');});
+ const ks=Object.keys(S.clues);
+ $('dev').innerHTML=ks.map(k=>'<button class="opt" data-k="'+k+'"><b>'+CLUES[k].n+'</b> - '+CLUES[k].d+'</button>').join('');
+ [...$('dev').children].forEach(b=>b.onclick=()=>{const k=b.dataset.k;dedEv[k]=!dedEv[k];b.classList.toggle('sel',dedEv[k]);AU.sfx('blip');});
+ $('ded').classList.remove('hide');
+}
+$('dno').onclick=()=>{$('ded').classList.add('hide');S.mode='play';};
+$('dgo').onclick=()=>{
+ const m=$('dmsg'),sel=Object.keys(dedEv).filter(k=>dedEv[k]);
+ if(!dedSus){m.textContent='Choose a suspect first.';return;}
+ if(dedSus==='bram'){m.textContent='Bram was fumbling with sweets downstairs, and he can\'t open a prefect\'s rune-lock. Think again.';AU.sfx('no');return;}
+ if(dedSus==='gristle'){m.textContent='Gristle raised the alarm himself, and a caretaker can\'t work a prefect\'s master-rune. Think again.';AU.sfx('no');return;}
+ if(dedSus==='nib'){m.textContent='Poltergeists float. Ghostly feet don\'t leave glowing prints with buckle-marked heels. Think again.';AU.sfx('no');return;}
+ if(sel.length<3){m.textContent='Cassian is the right name, but pick at least three pieces of evidence.';AU.sfx('no');return;}
+ const bad=sel.find(k=>!CLUES[k].s);
+ if(bad){m.textContent='"'+CLUES[bad].n+'" doesn\'t point at Cassian. Remove it.';AU.sfx('no');return;}
+ $('ded').classList.add('hide');S.mode='play';
+ talk([...N('You lay out the evidence: the buckled footprints, the rune-opened desk, the torn note, the borrowed book.'),...L('Cassian','...')].concat(finale()));
+};
+
+/* ---------------- ROOMS ---------------- */
+function mk(top,gap){const r=[];for(let y=0;y<GH;y++){let s;if(y<top||y===GH-1){s=Array(GW).fill('#');if(y===GH-1)gap.forEach(g=>s[g]='.');}else{s=Array(GW).fill('.');s[0]='#';s[GW-1]='#';}r.push(s.join(''));}return r;}
+const W20='#'.repeat(20);
+const corMap=[W20,W20,W20,W20,'#'+'.'.repeat(14)+'#'.repeat(5),'#'+'.'.repeat(14)+'#'.repeat(5),'#'+'.'.repeat(19),'#'+'.'.repeat(19),'#'+'.'.repeat(14)+'#'.repeat(5),'#'+'.'.repeat(14)+'#'.repeat(5),'####..'+'#'.repeat(14),W20,W20,W20];
+const libMap=[W20,W20,'#'+'.'.repeat(12)+'#'+'.'.repeat(5)+'#','#'+'.'.repeat(12)+'#'+'.'.repeat(5)+'#','#'+'.'.repeat(12)+'#'+'.'.repeat(5)+'#','#'+'.'.repeat(12)+'##..###','.'.repeat(19)+'#','.'.repeat(19)+'#',...Array(5).fill('#'+'.'.repeat(18)+'#'),W20];
+
+function doorMsg(d){
+ if(d.msg){toast(d.msg,3200);}
+ else toast(S.spells.reseris?'Locked. Perhaps Reseris (2) would persuade it.':'Locked tight. You need an unlocking charm.',3000);
+ AU.sfx('no');
+}
+function openDoor(d){d.locked=false;AU.sfx('unlock');sparks((d.x+d.w/2)*T,(d.y+d.h/2)*T,'#ffd98a',18);toast('Click! It swings open.');if(d.onOpen)d.onOpen();}
+
+const ROOMS={
+ common:{name:'Emberhollow Common Room',map:mk(2,[9,10]),dark:.42,
+  theme:{kind:'wood',f:['#5b3a52','#553450'],w:'#2a2457',wd:'#201b47',we:'#3b3480'},
+  lights:[[9.5,2,110,1,'w'],[4,2,46,.7,'c'],[16.5,6,50,.4,'w']],
+  objs:[
+   {k:'window',x:3,y:0,w:2,h:2,deco:1,use:()=>ex('A full moon hangs over the Gloamwick lake. Far below, a lantern bobs across the courtyard: Mr. Gristle on his rounds.')},
+   {k:'board',x:6,y:0,w:2,h:2,deco:1,use:()=>ex('A notice in Professor Pimm\'s cramped hand: "Curfew is NINE BELLS. The Whisperwrit Quill is NOT a toy. It writes down every honest word spoken near it. Do not whisper secrets in my office."')},
+   {k:'fire',x:8,y:0,w:3,h:2,deco:1,use:()=>ex('The fire crackles warmly. Someone has left a toasting fork propped by the hearth. For a second you almost forget there is a thief in the castle.')},
+   {k:'portrait',x:12,y:0,w:2,h:2,deco:1,use:portraitTalk},
+   {k:'shelf',x:1,y:0,w:2,h:2,deco:1,use:()=>ex('"Duelling for the Dubious." "Seventy Uses for a Wand Cleaning Cloth." "So You\'ve Turned Your Cat Into a Teapot."')},
+   {k:'shelf',x:15,y:0,w:3,h:2,deco:1,use:()=>ex('Tattered adventure novels. One is bookmarked with a pressed moon-flower.')},
+   {k:'rug',x:6,y:6,w:8,h:5,layer:0},
+   {k:'table',id:'bowl',x:14,y:6,w:2,h:2,solid:1,use:()=>{if(S.items.sweet||F.sweetTaken)return ex('Only crumbs and sugar dust remain in the bowl.');F.sweetTaken=1;give('sweet');return ex('A bowl of sweets. One of them glows faintly. You pocket the Glow-Sweet.');}},
+   {k:'chair',x:2,y:6,w:1,h:1,solid:1,use:()=>ex('Overstuffed and warm. No time for a nap.')},
+   {k:'chair',x:2,y:10,w:1,h:1,solid:1,use:()=>ex('Someone has left a half-finished essay on this armchair. It is mostly doodles of dragons.')},
+   {k:'cauldron',x:16,y:3,w:1,h:1,solid:1,use:()=>{clue('cauldron');return ex('A cauldron bubbling with green sludge. It smells of toads and moon-mint. A scrap taped to it reads "BRAM - POTIONS HOMEWORK - DO NOT TOUCH". Not the Quill\'s thief, then.');}},
+   {k:'plant',x:17,y:10,w:1,h:1,solid:1,use:()=>ex('A potted snapdragon. It snaps at you. You step back politely.')}
+  ],
+  npcs:[
+   {id:'odalys',x:4.2,y:8.4,pal:'odalys',solid:1,talk:odalysTalk},
+   {id:'bram',x:14.4,y:11,pal:'bram',solid:1,talk:bramTalk}
+  ],
+  doors:[{k:'door',x:9,y:13,w:2,h:1,to:'corridor',tx:4.9,ty:9.7}],cover:[]},
+
+ corridor:{name:'Third-Floor Gloaming Corridor',map:corMap,dark:.94,
+  theme:{kind:'stone',f:['#2b2f63','#272b5c'],w:'#1d2050',wd:'#161840',we:'#2e3272'},
+  lights:[[5,9.5,34,.6,'w']],patrol:{x0:2,x1:13.5,y:6.8,sp:27},
+  objs:[
+   {k:'prints',id:'prints',x:5,y:4,w:4,h:3,deco:1,use:()=>{clue('prints');return ex('Glowing footprints, shimmering like spilled moonlight. Small prints, and the heel of each has a neat strap-and-buckle mark. They lead east toward the library.');}},
+   {k:'cupboard',x:8,y:2,w:2,h:2,deco:1,use:()=>{clue('gristle');return ex('Mr. Gristle\'s cupboard: mops, buckets and a patrol log. The last entry reads "Midnight: Pimm\'s office checked and secure. 12:20: Quill gone! Raised alarm." His grey boots are by the door, mud-caked and not glowing at all.');}},
+   {k:'torch',x:1,y:2,w:1,h:2,deco:1,use:()=>ex('An unlit sconce. Mr. Gristle keeps the corridor dark on purpose, to catch wanderers.')},
+   {k:'torch',x:14,y:2,w:1,h:2,deco:1,use:()=>ex('An unlit sconce. Cold wax drips down the iron.')},
+   {k:'armor',id:'armor',x:16,y:6,w:1,h:2,solid:1,lift:1,
+    use:function(){return this.lifted?ex('The armour hovers near the ceiling, rattling disapprovingly.'):ex('A suit of armour stands wedged across the narrow passage to the library door. Far too heavy to push. Perhaps magic could shift it...');},
+    onLift:function(){F.armor=1;refreshUI();talk(N('You flick your wrist. "Levitas!" The armour rises with a clank of protest and hovers by the rafters.','Something small and pale lies where its boots stood: a torn scrap of paper.'));}},
+   {k:'note',id:'note',x:17,y:7,w:1,h:1,hide:function(){return!F.armor||this.gone;},
+    use:function(){this.gone=true;give('note');clue('note');return ex('A torn note in cramped handwriting: "Owlery at one bell. Send it far away before it tells. - C."');}}
+  ],
+  npcs:[],
+  doors:[
+   {k:'door',id:'office',x:4,y:3,w:2,h:1,locked:1,to:'office',tx:9.9,ty:12.3,onOpen(){F.office=1;refreshUI();}},
+   {k:'stairs',id:'stairs',x:11,y:3,w:2,h:1,locked:1,to:'owlery',tx:9.9,ty:12.3,msg:'An iron grille bars the spiral stairs to the Owlery. It looks like it would yield to Reseris.'},
+   {k:'door',x:4,y:10,w:2,h:1,to:'common',tx:9.9,ty:12.3},
+   {k:'door',id:'lib',x:19,y:6,w:1,h:2,locked:1,to:'library',tx:1.7,ty:7.1}
+  ],
+  cover:[[7,4,3,2],[13,8,2,2],[1,8,2,2]]},
+
+ office:{name:'Professor Pimm\'s Office',map:mk(2,[9,10]),dark:.78,
+  theme:{kind:'wood',f:['#4e3a4a','#493445'],w:'#2b2456',wd:'#201b47',we:'#3b3480'},
+  lights:[[9.5,2,90,.9,'c'],[10,5,40,.55,'w']],
+  objs:[
+   {k:'window',x:8,y:0,w:3,h:2,deco:1,use:()=>ex('The window is shut and latched from the inside. Whoever came and went used the door.')},
+   {k:'shelf',x:2,y:0,w:3,h:2,deco:1,use:()=>ex('Books on charms, curios and one very smug-looking jar of pickled eyeballs.')},
+   {k:'shelf',x:14,y:0,w:3,h:2,deco:1,use:()=>ex('Rows of labelled ink bottles. One label reads: "Truth. Do NOT mix with gossip."')},
+   {k:'rug',x:6,y:7,w:8,h:4,layer:0},
+   {k:'desk',x:7,y:4,w:4,h:2,solid:1,use:()=>{clue('desk');return ex('Professor Pimm\'s desk. The drawer holding the Quill\'s stand is open, and an empty brass stand sits inside. The lock\'s rune-plate still glows soft violet, unbroken.','Not forced. Opened properly with a master-rune. Only the Professor or a prefect could do that.');}},
+   {k:'jar',x:12,y:4,w:1,h:1,solid:1,use:()=>{clue('dust');give('vial');return ex('A jar of Glimmerdust lies on its side, spilled across the floor in a trail of heel-prints leading to the door. You scoop a little into a vial. It sticks to shoes and glows for hours.');}},
+   {k:'globe',x:3,y:6,w:1,h:1,solid:1,use:()=>ex('An enchanted globe. It spins itself and whispers the weather in places you\'ve never heard of.')},
+   {k:'chair',x:5,y:8,w:1,h:1,solid:1,use:()=>ex('Professor Pimm\'s reading chair. A tea cup beside it is still faintly warm.')}
+  ],
+  npcs:[],doors:[{k:'door',x:9,y:13,w:2,h:1,to:'corridor',tx:5,ty:4.8}],cover:[]},
+
+ library:{name:'Hollowbrook Library',map:libMap,dark:.72,
+  theme:{kind:'wood',f:['#4a3447','#452f43'],w:'#241f4d',wd:'#1b1740',we:'#383070'},
+  lights:[[3,5.5,56,.9,'w'],[10,5.5,56,.9,'w'],[16,6.5,56,.9,'w'],[16,3,40,.8,'w'],[3,10.5,44,.6,'w']],patrol:{x0:2,x1:17,y:7.4,sp:28},
+  objs:[
+   {k:'shelf',x:1,y:0,w:5,h:2,deco:1,use:()=>ex('Rows of dusty histories. "A Hundred Headmasters (and Their Hats)."')},
+   {k:'shelf',x:7,y:0,w:5,h:2,deco:1,use:()=>ex('A gap in the shelf where a book was recently pulled out. Dust outlines it: "Silencing Spells for Talking Objects".')},
+   {k:'shelf',x:14,y:0,w:5,h:2,deco:1,use:()=>ex('Restricted books, bound in chains. One whispers "do not whisper" at you, which seems hypocritical.')},
+   {k:'table',x:2,y:3,w:3,h:2,solid:1,use:()=>ex('Someone\'s Charms homework, abandoned mid-sentence. The margin doodle is a very rude portrait of Mr. Gristle.')},
+   {k:'shelf',x:6,y:3,w:4,h:2,solid:1,use:()=>ex('A tall bookcase. "Mildly Cursed Cookbooks."')},
+   {k:'cart',id:'cart',x:10,y:3,w:2,h:1,solid:1,lift:1,
+    use:function(){return this.lifted?ex('The book cart floats in the air, a little embarrassed.'):ex('A book cart, parked suspiciously crooked. Something glints beneath it, but it is too heavy to shove. Maybe a spell could lift it.');},
+    onLift:function(){F.cart=1;refreshUI();talk(N('"Levitas!" The cart bobs up like a startled duck. A tiny silver glint on the floor catches the light.'));}},
+   {k:'buckle',id:'buckle',x:10,y:4,w:1,h:1,hide:function(){return!F.cart||this.gone;},
+    use:function(){this.gone=true;give('buckle');clue('buckle');return ex('A silver buckle, snapped clean off a shoe. Engraved on it is the tiny crest of the school prefects.');}},
+   {k:'shelf',x:2,y:9,w:4,h:2,solid:1,use:()=>ex('"Practical Potions for the Impractical."')},
+   {k:'shelf',x:8,y:9,w:4,h:2,solid:1,use:()=>ex('"Beginners\' Banishing." Someone has banished the last page.')},
+   {k:'shelf',x:14,y:9,w:4,h:2,solid:1,use:()=>ex('"Maps of Places That Moved."')},
+   {k:'desk',id:'ledger',x:15,y:2,w:3,h:1,solid:1,use:()=>{clue('ledger');return ex('The Restricted Section ledger. The last line, dated tonight, reads: "C. Vale - Silencing Spells for Talking Objects. Prefect privilege. Returned: NO."');}},
+   {k:'lectern',x:18,y:3,w:1,h:1,solid:1,use:()=>ex('A chained book on a lectern. Its pages are blank except one line: "Some truths are better returned than hidden."')}
+  ],
+  npcs:[{id:'nib',x:9,y:7.2,pal:'nib',ghost:1,float:1,talk:nibTalk}],
+  doors:[
+   {k:'door',x:0,y:6,w:1,h:2,to:'corridor',tx:18.2,ty:7.1},
+   {k:'gate',id:'gate',x:15,y:5,w:2,h:1,locked:1,msg:'An iron gate seals the Restricted Section. A rune on it glows. Try Reseris (2).'}
+  ],
+  cover:[[6,9,2,2],[12,9,2,2]]},
+
+ owlery:{name:'The Owlery',map:mk(2,[9,10]),dark:.55,
+  theme:{kind:'straw',f:['#5a4d46','#554841'],w:'#2a2457',wd:'#201b47',we:'#3b3480'},
+  lights:[[10,1,120,1,'c'],[10,6,60,.6,'c']],
+  objs:[
+   {k:'window',x:7,y:0,w:6,h:2,deco:1,use:()=>ex('A great round window. Moonlight pours in over the highlands, silver and enormous.')},
+   {k:'perch',x:2,y:3,w:5,h:1,solid:1,use:()=>ex('A row of sleepy owls. One opens an eye, judges you, and closes it again.')},
+   {k:'perch',x:14,y:3,w:4,h:1,solid:1,use:()=>ex('Owls shuffle and puff up. "Hoo?" says one. "Me," you whisper.')},
+   {k:'hay',x:3,y:8,w:4,h:3,layer:0},{k:'hay',x:13,y:9,w:4,h:3,layer:0},
+   {k:'owl',id:'sorrel',x:10,y:5,w:1,h:1,solid:1,use:()=>ex('Sorrel the owl hoots at you. A grey parcel is tied to her leg and murmurs faintly, like someone muttering in their sleep.')}
+  ],
+  npcs:[{id:'cassian',x:8.2,y:5.4,pal:'cassian',solid:1,talk:cassianTalk}],
+  doors:[{k:'door',x:9,y:13,w:2,h:1,to:'corridor',tx:11.9,ty:4.8}],cover:[]}
+};
+const PRINTS=Array.from({length:15},(_,i)=>({x:(4.6+i*.76)*T,y:(4.7+i*.14+(i%2?.2:-.2))*T}));
+
+/* ---------------- OBJECTIVES / HINTS ---------------- */
+const OBJ=[
+ ['Speak with Odalys in the Common Room',()=>F.odalys],
+ ['Follow the glowing footprints (Lucerna)',()=>S.clues.prints],
+ ['Get into Professor Pimm\'s office',()=>F.office],
+ ['Clear the way into the Library',()=>F.library],
+ ['Open the Restricted Section, check the ledger',()=>S.clues.ledger],
+ ['Find where the thief fled (the Owlery)',()=>F.owlery],
+ ['Unmask the culprit',()=>F.solved]
+];
+function hint(){
+ if(!F.odalys)return'Talk to Odalys by the armchairs on the left. Stand close and press E.';
+ if(!S.clues.prints)return'Take the big south door to the corridor. Press 1 for Lucerna and examine the glowing footprints.';
+ if(!F.office)return S.spells.reseris?'Stand beside Professor Pimm\'s office door (top-left of the corridor) and press 2 for Reseris.':'Bram, by the table on the right, knows an unlocking spell. Be kind to him.';
+ if(!F.library){if(!S.spells.levitas)return'The portrait of Dame Brunhild in the Common Room teaches Levitas if you answer her riddle (hint: you do it every second).';
+  if(!F.armor)return'Cast Levitas (3) near the armour blocking the east end of the corridor.';
+  return'Cast Reseris (2) beside the library door at the far east end of the corridor.';}
+ if(!S.clues.ledger)return'The Restricted Section gate is top-right of the library. Cast Reseris (2) beside it, then examine the desk. Duck into shelf nooks when Gristle passes.';
+ if(!F.owlery)return'The Owlery stairs are the grille in the corridor\'s north wall. Cast Reseris (2) beside it.';
+ return'Talk to Cassian. You need at least four clues pointing at him. Try the book cart (Levitas), Nib the poltergeist, Bram and Pimm\'s desk.';
+}
+
+/* ---------------- UI ---------------- */
+function refreshUI(){
+ let found=false;
+ $('objs').innerHTML=OBJ.map(o=>{const d=!!o[1]();let c=d?'done':'';if(!d&&!found){c='now';found=true;}return'<li class="'+c+'">'+o[0]+'</li>';}).join('');
+ $('spells').innerHTML=Object.keys(SP).map(k=>'<div class="spell '+(S.spells[k]?(k==='lucerna'&&S.light?'on':''):'lock')+'"><span>['+SP[k].k+'] '+(S.spells[k]?SP[k].n:'? ? ?')+'</span><span>'+(S.spells[k]?SP[k].d:'locked')+'</span></div>').join('');
+ const it=Object.keys(S.items);$('inv').innerHTML=it.length?it.map(k=>'<span class="chip" title="'+ITEMS[k].d+'">'+ITEMS[k].n+'</span>').join(''):'<span class="empty">Empty pockets.</span>';
+ const cl=Object.keys(S.clues);$('clues').innerHTML=cl.length?cl.map(k=>'<div class="clue '+(CLUES[k].s?'':'red')+'"><b>'+CLUES[k].n+'</b><small>'+CLUES[k].d+'</small></div>').join(''):'<span class="empty">No clues yet.</span>';
+ $('caught').textContent='Times caught by Mr. Gristle: '+S.caught;
+}
+$('mute').onclick=()=>{AU.init();AU.toggle();};
+$('hintb').onclick=()=>{if(S.mode==='play')toast('Hint: '+hint(),5200);};
+function fit(){
+ const side=innerWidth>900?310:0,aw=innerWidth-side-36,ah=innerHeight-36;
+ let sc=Math.min(aw/VW,ah/VH);if(sc>=2)sc=Math.floor(sc);if(sc<1)sc=Math.max(.6,sc);
+ if(innerWidth<=900)sc=Math.min(sc,(innerWidth-30)/VW);
+ cv.style.width=VW*sc+'px';cv.style.height=VH*sc+'px';$('stage').style.setProperty('--u',sc+'px');
+}
+addEventListener('resize',fit);
+
+/* ---------------- ROOM BAKING ---------------- */
+const BASE={};
+function bake(id){
+ const R=ROOMS[id],c=document.createElement('canvas');c.width=VW;c.height=VH;const g=c.getContext('2d'),th=R.theme;
+ const r=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+ for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+  const ch=R.map[y][x],px=x*T,py=y*T;
+  if(ch==='#'){
+   r(px,py,T,T,th.w);
+   for(let k=0;k<4;k++){r(px,py+k*4+3,T,1,th.wd);r(px+((k%2)*8)+4,py+k*4,1,3,th.wd);}
+   if(hash(x*31+y*17)>.7)r(px+3,py+5,4,2,th.we+'55');
+   if(y+1<GH&&R.map[y+1][x]!=='#'){r(px,py+12,T,4,th.we);r(px,py+15,T,1,'#00000066');}
+  }else{
+   const a=th.f[(x+y)%2];r(px,py,T,T,a);
+   if(th.kind==='wood'){r(px,py+5,T,1,'#00000033');r(px,py+10,T,1,'#00000033');r(px+((y%2)?4:11),py,1,5,'#00000033');r(px+6,py+10,1,6,'#00000022');}
+   else if(th.kind==='stone'){r(px,py,T,1,'#00000044');r(px,py,1,T,'#00000044');if(hash(x*9+y*5)>.6)r(px+4,py+6,5,3,'#ffffff0d');}
+   else{for(let k=0;k<5;k++){const hx=hash(x*13+y*7+k)*13,hy=hash(x*5+y*11+k)*14;r(px+hx,py+hy,3,1,'#b89a6a55');}}
+   if(y>0&&R.map[y-1][x]==='#')r(px,py,T,4,'#00000055');
+  }
+ }
+ BASE[id]=c;
+}
+
+/* ---------------- DRAWING ---------------- */
+const BK=['#a33b4a','#3b6ea3','#3ba37a','#c9a43b','#7a4aa3','#a36a3b'];
+function drawObj(o){
+ const x=o.x*T,y=o.y*T,w=o.w*T,h=o.h*T;
+ if(o.lifted){
+  const bob=Math.sin(t*2.5)*2;ctx.save();ctx.translate(0,-22+bob);ctx.globalAlpha=.92;drawKind(o,x,y,w,h);ctx.restore();
+  if(Math.random()<.1)sparks(x+w/2,y-10,'#ffd98a',1);return;
+ }
+ drawKind(o,x,y,w,h);
+}
+function drawKind(o,x,y,w,h){
+ switch(o.k){
+ case 'shelf':{rc(x,y,w,h,'#4a2c24');for(let r=0;r<Math.floor(h/8);r++){rc(x+1,y+r*8+7,w-2,1,'#2a170f');for(let i=x+2;i<x+w-3;i+=3){const hh=3+Math.floor(hash(i*13+r*7+o.x)*4);rc(i,y+r*8+7-hh,2,hh,BK[Math.floor(hash(i*5+r+o.y*3)*BK.length)]);}}rc(x,y,w,1,'#6b3f2a');break;}
+ case 'fire':{rc(x,y+4,w,h-4,'#5a5e9a');rc(x-2,y+2,w+4,3,'#7a7ec0');rc(x+9,y+12,w-18,h-12,'#0a0710');
+  for(let i=0;i<5;i++){const fh=7+Math.sin(t*9+i*1.7)*3+i%2*3,fx=x+11+i*5;rc(fx,y+h-fh,4,fh,'#ff7a2f');rc(fx+1,y+h-fh*.65,2,fh*.65,'#ffd98a');}
+  rc(x+8,y+h-3,w-16,3,'#3a2418');break;}
+ case 'window':{rc(x+2,y+3,w-4,h-5,'#6b3f2a');rc(x+4,y+5,w-8,h-9,'#0f1a5c');
+  rc(x+w*.62,y+7,7,7,'#f4f0d0');rc(x+w*.62+2,y+7,5,7,'#0f1a5c');rc(x+w*.62+1,y+8,4,5,'#f4f0d0');
+  for(let i=0;i<5;i++)rc(x+6+hash(i*7+o.x)*(w-14),y+6+hash(i*3+o.x)*8,1,1,'#fff');rc(x+w/2-1,y+5,2,h-9,'#6b3f2a');break;}
+ case 'board':{rc(x+2,y+4,w-4,h-6,'#6b3f2a');rc(x+4,y+6,w-8,h-10,'#b07a45');rc(x+7,y+8,8,6,'#f1e3c0');rc(x+18,y+9,7,8,'#e8d6a0');rc(x+9,y+17,9,5,'#cfe0f0');break;}
+ case 'portrait':{rc(x+3,y+3,w-6,h-6,'#e9b949');rc(x+5,y+5,w-10,h-10,'#27406a');rc(x+10,y+8,w-20,12,'#f0c9a0');rc(x+9,y+6,w-18,4,'#9aa0c8');rc(x+11,y+14,4,1,'#222');rc(x+w-15,y+14,4,1,'#222');rc(x+12,y+20,w-24,6,'#8a2f4a');if(((t*0.6)|0)%2)rc(x+w-9,y+9,2,2,'#fff');break;}
+ case 'cupboard':{rc(x+1,y+1,w-2,h-1,'#5a3a28');rc(x+3,y+3,w/2-4,h-5,'#6b4632');rc(x+w/2+1,y+3,w/2-4,h-5,'#6b4632');rc(x+w/2-2,y+h/2,2,4,'#e9b949');rc(x+w/2+1,y+h/2,2,4,'#e9b949');break;}
+ case 'torch':{rc(x+5,y+8,6,10,'#3a3a50');rc(x+3,y+4,10,5,'#555a80');break;}
+ case 'table':{rc(x,y+4,w,h-4,'#6b3f2a');rc(x,y+2,w,5,'#8a5636');rc(x,y+2,w,1,'#a8693f');rc(x+2,y+h-3,3,3,'#3a2418');rc(x+w-5,y+h-3,3,3,'#3a2418');
+  if(o.id==='bowl'&&!S.items.sweet&&!F.sweetTaken){rc(x+w/2-6,y+2,12,4,'#c9d6e8');for(let i=0;i<4;i++)rc(x+w/2-5+i*3,y,2,3,i===1?'#9fffd0':'#ff8aa8');if(Math.sin(t*5)>0)rc(x+w/2-2,y-2,2,2,'#e9ffd8');}break;}
+ case 'chair':{rc(x+1,y+3,w-2,h-4,'#8a2f4a');rc(x+1,y,w-2,6,'#6a2339');rc(x+3,y+7,w-6,3,'#a8405e');break;}
+ case 'cauldron':{rc(x+2,y+5,12,9,'#15151f');rc(x+1,y+4,14,3,'#2a2a3a');rc(x+3,y+4,10,2,'#2fbf8a');rc(x+3+((t*3)|0)%8,y+2-((t*5)|0)%3,2,2,'#7fffc0');rc(x+3,y+14,2,2,'#15151f');rc(x+11,y+14,2,2,'#15151f');break;}
+ case 'plant':{rc(x+4,y+9,8,6,'#8a5636');rc(x+3,y+3,4,7,'#2fbf8a');rc(x+8,y+1,4,9,'#1b7f5c');rc(x+6,y+6,3,4,'#43d6a0');break;}
+ case 'rug':{rc(x,y,w,h,'#7a2f4a');rc(x+2,y+2,w-4,h-4,'#a8405e');rc(x+5,y+5,w-10,h-10,'#7a2f4a');rc(x+8,y+8,w-16,h-16,'#3b2a60');for(let i=0;i<w;i+=4)rc(x+i,y-1,2,1,'#ffd98a');break;}
+ case 'desk':{rc(x,y+3,w,h-3,'#6b3f2a');rc(x,y,w,h*.55,'#8a5636');rc(x,y,w,1,'#a8693f');rc(x+4,y+3,6,4,'#f1e3c0');
+  if(o.id!=='ledger'){rc(x+w/2-3,y+2,6,2,'#e9b949');rc(x+w/2-1,y,2,3,'#e9b949');}else{rc(x+5,y+3,9,5,'#8a2f4a');rc(x+6,y+4,7,3,'#f1e3c0');}break;}
+ case 'jar':{rc(x+3,y+4,10,10,'#9fd8ff55');rc(x+3,y+4,10,1,'#d6f0ff');rc(x+4,y+10,8,3,'#ffd98a');if(Math.sin(t*6)>0)rc(x+7,y+8,2,2,'#fff');break;}
+ case 'globe':{rc(x+5,y+12,6,3,'#6b3f2a');rc(x+3,y+2,10,10,'#2a4f8a');rc(x+5,y+4,4,3,'#2fbf8a');rc(x+4+((t*2)|0)%6,y+6,2,2,'#2fbf8a');break;}
+ case 'cart':{rc(x+1,y+6,w-2,8,'#6b3f2a');rc(x+3,y,w-6,7,'#a33b4a');for(let i=0;i<5;i++)rc(x+4+i*5,y+1,4,5,BK[i%BK.length]);rc(x+2,y+14,3,2,'#222');rc(x+w-5,y+14,3,2,'#222');break;}
+ case 'buckle':{rc(x+5,y+7,6,4,'#c9d6e8');rc(x+7,y+8,2,2,'#222');if(Math.sin(t*7)>0)rc(x+5,y+6,2,2,'#fff');break;}
+ case 'note':{rc(x+4,y+6,8,6,'#e8d6a0');rc(x+5,y+8,6,1,'#7a5a3a');if(Math.sin(t*5)>0)rc(x+11,y+5,2,2,'#fff');break;}
+ case 'lectern':{rc(x+6,y+8,4,7,'#6b3f2a');rc(x+2,y+3,12,6,'#8a5636');rc(x+4,y+1,8,4,'#e8d6a0');rc(x+3,y+9,10,1,'#aab0e8');break;}
+ case 'armor':{rc(x+4,y+4,8,8,'#9aa0c8');rc(x+5,y+0,6,6,'#b6bce0');rc(x+7,y+2,2,2,'#222');rc(x+3,y+11,10,12,'#7e84b8');rc(x+4,y+23,3,7,'#7e84b8');rc(x+9,y+23,3,7,'#7e84b8');rc(x+13,y-2,2,26,'#6b3f2a');rc(x+12,y-4,4,4,'#c9d6e8');rc(x+4,y+11,8,1,'#d6dcf5');break;}
+ case 'perch':{rc(x,y+10,w,3,'#6b3f2a');for(let i=0;i<Math.floor(w/14);i++){const ox=x+4+i*14,bl=hash(i*3+o.x)>.6&&((t*0.7+i)|0)%3===0;rc(ox,y+1,8,10,i%2?'#c9a982':'#8a6a4a');rc(ox+1,y,6,4,i%2?'#e8d6b8':'#a88a6a');rc(ox+1,y+2,2,2,bl?'#8a6a4a':'#ffd98a');rc(ox+5,y+2,2,2,bl?'#8a6a4a':'#ffd98a');rc(ox+3,y+4,2,2,'#e9b949');}break;}
+ case 'owl':{rc(x+3,y+4,10,11,'#e8e0d0');rc(x+4,y+2,8,5,'#f4eee0');rc(x+5,y+3,2,2,'#222');rc(x+9,y+3,2,2,'#222');rc(x+7,y+5,2,2,'#e9b949');rc(x+2,y+13,4,2,'#e9b949');rc(x+10,y+13,4,2,'#e9b949');rc(x+11,y+8,5,5,'#8a8a96');if(Math.sin(t*8)>0)rc(x+14,y+9,1,1,'#fff');break;}
+ case 'hay':{rc(x,y,w,h,'#7a643c55');for(let i=0;i<30;i++){rc(x+hash(i*3+o.x)*w,y+hash(i*5+o.y)*h,4,1,'#c9a95a88');}break;}
+ default:rc(x,y,w,h,'#6b3f2a');
+ }
+}
+function drawDoor(d){
+ const x=d.x*T,y=d.y*T,w=d.w*T,h=d.h*T;
+ if(d.k==='gate'){rc(x,y,w,h,'#10122e');if(d.locked){for(let i=1;i<w;i+=4)rc(x+i,y,2,h,'#7e84c8');rc(x,y+h/2-1,w,2,'#5a60a8');rc(x+w/2-3,y+h/2-3,6,6,'#e9b949');}else{rc(x,y,2,h,'#7e84c8');rc(x+w-2,y,2,h,'#7e84c8');}return;}
+ if(d.k==='stairs'){rc(x,y,w,h,'#0b0c24');for(let i=0;i<4;i++)rc(x+2+i*2,y+2+i*3,w-4-i*4,2,'#4a4f9a');if(d.locked){for(let i=2;i<w;i+=4)rc(x+i,y,2,h,'#7e84c8');rc(x+w/2-3,y+h/2-3,6,6,'#e9b949');}return;}
+ if(d.locked){rc(x,y,w,h,'#6b3f2a');rc(x+1,y+1,w-2,h-2,'#8a5636');rc(x,y+h/2,w,2,'#3a3a44');const lx=x+w/2-3,ly=y+h/2-4;rc(lx,ly,6,7,'#e9b949');rc(lx+2,ly+2,2,3,'#222');if(S.spells.reseris&&Math.sin(t*4)>0)rc(lx-1,ly-1,8,1,'#9fd8ff');}
+ else{rc(x,y,w,h,'#05060f');rc(x,y,w,2,'#6b3f2a');rc(x,y,2,h,'#6b3f2a');rc(x+w-2,y,2,h,'#6b3f2a');}
+}
+function drawCover(c){
+ const x=c[0]*T,y=c[1]*T,w=c[2]*T,h=c[3]*T;
+ rc(x,y,w,h,'rgba(0,0,22,.4)');
+ for(let i=0;i<w;i+=8)rc(x+i,y,1,h,'rgba(0,0,0,.18)');
+ if(c===null)return;
+}
+function drawChar(x,y,p,dir,fr,alpha){
+ x=Math.round(x);y=Math.round(y);const bob=(fr%2)?-1:0;
+ ctx.save();if(alpha!=null)ctx.globalAlpha=alpha;
+ rc(x-5,y-1,10,2,'rgba(0,0,0,.35)');
+ rc(x-3,y-3+(fr===1?-1:0),3,3,p.shoe);rc(x,y-3+(fr===3?-1:0),3,3,p.shoe);
+ const by=y+bob;
+ rc(x-5,by-12,10,9,p.robe);rc(x-5,by-4,10,2,p.trim);rc(x-6,by-11,1,6,p.robe);rc(x+5,by-11,1,6,p.robe);
+ if(p.scarf){rc(x-4,by-12,8,2,p.scarf);if(dir!=='up')rc(dir==='left'?x-4:x+2,by-11,2,4,p.scarf);}
+ rc(x-4,by-19,8,7,p.skin);
+ if(dir==='up')rc(x-4,by-20,8,8,p.hair);
+ else{
+  rc(x-4,by-20,8,3,p.hair);rc(x-5,by-19,1,4,p.hair);rc(x+4,by-19,1,4,p.hair);
+  if(p.long){rc(x-5,by-17,1,8,p.hair);rc(x+4,by-17,1,8,p.hair);}
+  const ey=by-15;
+  if(dir==='down'){rc(x-3,ey,1,2,'#1a1020');rc(x+2,ey,1,2,'#1a1020');}
+  else if(dir==='left'){rc(x-3,ey,1,2,'#1a1020');rc(x+3,by-19,1,6,p.hair);}
+  else{rc(x+2,ey,1,2,'#1a1020');rc(x-4,by-19,1,6,p.hair);}
+ }
+ if(p.cap){rc(x-5,by-22,10,3,p.cap);rc(x-6,by-19,12,1,'#111');}
+ if(p.badge){rc(x+1,by-10,2,2,'#e8eefc');rc(x-3,by-10,2,2,'#e8eefc');}
+ if(p.lantern){const lx=dir==='left'?x-10:x+7;rc(lx,by-9,3,4,'#ffb347');rc(lx+1,by-11,1,2,'#777');}
+ ctx.restore();
+}
+const PAL={
+ wren:{robe:'#6a2a3d',trim:'#ffb347',hair:'#8a3b1e',skin:'#f0c9a0',shoe:'#1a1020',scarf:'#2fbf8a'},
+ odalys:{robe:'#2a4f8a',trim:'#d6f0ff',hair:'#1a1020',skin:'#c98e62',shoe:'#1a1020',long:1},
+ bram:{robe:'#8a3a1e',trim:'#e9b949',hair:'#d6762b',skin:'#f3d2b0',shoe:'#1a1020'},
+ gristle:{robe:'#55523f',trim:'#222',hair:'#9a9a9a',skin:'#d8b896',shoe:'#111',cap:'#3a3a30',lantern:1},
+ cassian:{robe:'#1f6a52',trim:'#c9d6e8',hair:'#e8d9a0',skin:'#f0d6bd',shoe:'#111',badge:1}
+};
+function drawGhost(x,y){
+ x=Math.round(x);const b=Math.sin(t*3)*2;y=Math.round(y+b);
+ ctx.save();ctx.globalAlpha=.75;
+ rc(x-5,y-20,10,12,'#cfeaff');rc(x-6,y-18,12,8,'#cfeaff');
+ for(let i=0;i<4;i++)rc(x-6+i*3,y-8,3,3+((i+((t*4)|0))%2)*2,'#cfeaff');
+ rc(x-3,y-16,2,2,'#1a1020');rc(x+1,y-16,2,2,'#1a1020');rc(x-2,y-12,4,1,'#1a1020');rc(x-1,y-11,2,1,'#ff6a8a');
+ rc(x-4,y-24,8,4,'#2fbf8a');rc(x-2,y-27,4,3,'#2fbf8a');
+ ctx.restore();
+}
+function drawNpc(n){
+ if(n.ghost){drawGhost(n.x*T,n.y*T);return;}
+ const dx=S.x-n.x*T,dy=S.y-n.y*T;let dir='down';
+ if(Math.hypot(dx,dy)<60)dir=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');
+ drawChar(n.x*T,n.y*T,PAL[n.pal],dir,0);
+}
+function drawPlayer(){
+ const hid=S.light?false:inCover();
+ drawChar(S.x,S.y,PAL.wren,S.dir,S.moving?Math.floor(S.ft*8)%4:0,hid?.5:1);
+ if(S.light){const fx=S.dir==='left'?S.x-8:S.x+8;rc(fx,S.y-12,2,2,'#ffd98a');}
+}
+function drawGristle(g){
+ drawChar(g.x,g.y,PAL.gristle,g.dx<0?'left':'right',g.pause>0?0:Math.floor(t*6)%4);
+ if(g.alert>.15){rc(g.x-1,g.y-32,3,6,'#ff4a4a');rc(g.x-1,g.y-24,3,2,'#ff4a4a');rc(g.x-8,g.y-36,16,2,'#000');rc(g.x-8,g.y-36,16*Math.min(1,g.alert),2,'#ff4a4a');}
+}
+
+/* ---------------- WORLD LOGIC ---------------- */
+function tileSolid(tx,ty){
+ if(tx<0||ty<0||tx>=GW||ty>=GH)return true;
+ const R=ROOMS[S.room];
+ if(R.map[ty][tx]!=='#')return false;
+ for(const d of R.doors){if(!d.locked&&tx>=d.x&&tx<d.x+d.w&&ty>=d.y&&ty<d.y+d.h)return false;}
+ return true;
+}
+function blocked(x,y){
+ const R=ROOMS[S.room],l=x-4,r=x+4,tp=y-5,b=y;
+ for(let ty=Math.floor(tp/T);ty<=Math.floor((b-.01)/T);ty++)for(let tx=Math.floor(l/T);tx<=Math.floor((r-.01)/T);tx++)if(tileSolid(tx,ty))return true;
+ for(const o of R.objs){if(o.solid&&!o.lifted&&!isHidden(o)&&ov(l,tp,8,5,o.x*T,o.y*T,o.w*T,o.h*T))return true;}
+ for(const d of R.doors){if(d.locked&&ov(l,tp,8,5,d.x*T,d.y*T,d.w*T,d.h*T))return true;}
+ for(const n of R.npcs){if(n.solid&&ov(l,tp,8,5,n.x*T-5,n.y*T-4,10,4))return true;}
+ return false;
+}
+function isHidden(o){return o.gone||(o.hide&&o.hide());}
+function inCover(){const R=ROOMS[S.room];return(R.cover||[]).some(c=>S.x>c[0]*T&&S.x<(c[0]+c[2])*T&&S.y-4>c[1]*T&&S.y-4<(c[1]+c[3])*T);}
+function rectDist(px,py,r){const dx=Math.max(r[0]-px,0,px-(r[0]+r[2])),dy=Math.max(r[1]-py,0,py-(r[1]+r[3]));return Math.hypot(dx,dy);}
+function targets(){
+ const R=ROOMS[S.room],a=[];
+ R.objs.forEach(o=>{if(o.use&&!isHidden(o))a.push({r:[o.x*T,o.y*T,o.w*T,o.h*T],go:()=>{const s=o.use();if(s)talk(s);}});});
+ R.npcs.forEach(n=>a.push({r:[n.x*T-6,n.y*T-16,12,16],go:()=>talk(n.talk()),npc:n}));
+ R.doors.forEach(d=>{if(d.locked)a.push({r:[d.x*T,d.y*T,d.w*T,d.h*T],go:()=>doorMsg(d)});});
+ return a;
+}
+function nearest(){let best=null,bd=15;for(const a of targets()){const d=rectDist(S.x,S.y-4,a.r);if(d<bd){bd=d;best=a;}}return best;}
+function interact(){const a=nearest();if(a){AU.sfx('blip');a.go();}}
+function cast(k){
+ if(S.mode!=='play'||S.fadeTo)return;
+ if(!S.spells[k]){toast('You haven\'t learned that spell yet.');AU.sfx('no');return;}
+ AU.sfx('spell');
+ if(k==='lucerna'){S.light=!S.light;sparks(S.x,S.y-14,'#ffd98a',10);toast(S.light?'Lucerna: your wand-tip glows.':'Nox... your light fades.');refreshUI();return;}
+ const R=ROOMS[S.room];sparks(S.x+(S.dir==='left'?-8:8),S.y-12,k==='reseris'?'#9fd8ff':'#c8a8ff',12);
+ if(k==='reseris'){const d=R.doors.find(d=>d.locked&&rectDist(S.x,S.y-4,[d.x*T,d.y*T,d.w*T,d.h*T])<30);if(d)openDoor(d);else toast('Reseris fizzles. Nothing nearby to unlock.');return;}
+ if(k==='levitas'){const o=R.objs.find(o=>o.lift&&!o.lifted&&rectDist(S.x,S.y-4,[o.x*T,o.y*T,o.w*T,o.h*T])<36);
+  if(o){o.lifted=true;o.solid=false;AU.sfx('unlock');if(o.onLift)o.onLift();}else toast('Levitas fizzles. Nothing nearby is liftable.');}
+}
+function goRoom(id,tx,ty){if(S.fadeTo)return;S.fadeTo={id,tx,ty};S.fv=0;S.fdir=1;}
+function applyRoom(){
+ const f=S.fadeTo;S.room=f.id;S.x=f.tx*T;S.y=f.ty*T;S.cool=.5;
+ if(f.id==='library')F.library=1;if(f.id==='owlery')F.owlery=1;
+ banner(ROOMS[f.id].name);refreshUI();
+}
+function gstate(id){const R=ROOMS[id];if(!R.patrol)return null;return G[id]||(G[id]={x:R.patrol.x0*T,y:R.patrol.y*T,dx:1,pause:0,alert:0,pinged:false});}
+function canSee(g){
+ const dx=S.x-g.x,dy=S.y-g.y,dist=Math.hypot(dx,dy),R=S.light?150:58;
+ if(dist>R)return false;
+ if(!S.light&&inCover())return dist<14;
+ if(dist>22&&dx*g.dx<0)return false;
+ for(let i=1;i<8;i++){const px=g.x+dx*i/8,py=g.y-6+(dy)*i/8;if(tileSolid(Math.floor(px/T),Math.floor(py/T)))return false;}
+ return true;
+}
+function caught(){
+ S.caught++;S.light=false;G={};AU.sfx('caught');refreshUI();
+ const lines=[['AH-HA! Out of bed after curfew!','Back to Emberhollow with you, and no dawdling!'],['YOU AGAIN?!','I shall be keeping my eye on YOU, young Ashby. Back to bed!'],['Third time tonight! Does your bed offend you?','March!']][Math.min(S.caught-1,2)];
+ talk(L('Mr. Gristle',...lines),()=>{const f={id:'common',tx:9.9,ty:11.2};S.fadeTo=null;goRoom(f.id,f.tx,f.ty);});
+}
+
+/* ---------------- UPDATE / RENDER ---------------- */
+function update(dt){
+ t+=dt;
+ for(let i=PT.length-1;i>=0;i--){const p=PT[i];p.l-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=70*dt;if(p.l<=0)PT.splice(i,1);}
+ if(S.fadeTo){S.fv+=S.fdir*dt*4;if(S.fdir===1&&S.fv>=1){applyRoom();S.fdir=-1;}else if(S.fdir===-1&&S.fv<=0){S.fadeTo=null;S.fv=0;S.fdir=1;}}
+ if(D.active&&D.cur&&!D.ch&&D.pos<D.full.length){
+  D.acc+=dt*58;const n=Math.floor(D.acc);
+  if(n>D.pos){D.pos=Math.min(D.full.length,n);$('dtext').textContent=D.full.slice(0,D.pos);if(D.pos%3===0)AU.sfx('tick');if(D.pos>=D.full.length)$('dhint').style.visibility='visible';}
+ }
+ const R=ROOMS[S.room];
+ R.npcs.forEach(n=>{if(n.float){n.bx=n.bx||n.x;n.by=n.by||n.y;n.x=n.bx+Math.cos(t*.45)*3.2;n.y=n.by+Math.sin(t*.7)*.5;}});
+ if(S.mode!=='play'||S.fadeTo)return;
+ S.time+=dt;S.cool=Math.max(0,S.cool-dt);
+ let vx=0,vy=0;
+ if(keys.a||keys.arrowleft)vx--;if(keys.d||keys.arrowright)vx++;if(keys.w||keys.arrowup)vy--;if(keys.s||keys.arrowdown)vy++;
+ S.moving=!!(vx||vy);
+ if(S.moving){
+  const m=Math.hypot(vx,vy),sp=(S.light?58:64)*dt;vx=vx/m*sp;vy=vy/m*sp;
+  if(vx)S.dir=vx<0?'left':'right';else S.dir=vy<0?'up':'down';
+  if(!blocked(S.x+vx,S.y))S.x+=vx;if(!blocked(S.x,S.y+vy))S.y+=vy;S.ft+=dt;
+ }
+ if(!S.cool){for(const d of R.doors){if(!d.locked&&d.to&&ov(S.x-4,S.y-5,8,5,d.x*T,d.y*T,d.w*T,d.h*T)){goRoom(d.to,d.tx,d.ty);break;}}}
+ const g=gstate(S.room);
+ if(g&&F.odalys){
+  const p=R.patrol;
+  if(g.pause>0)g.pause-=dt;else{g.x+=g.dx*p.sp*dt;if(g.x>=p.x1*T){g.x=p.x1*T;g.dx=-1;g.pause=1.6;}if(g.x<=p.x0*T){g.x=p.x0*T;g.dx=1;g.pause=1.6;}}
+  if(canSee(g)){g.alert+=dt/.9;if(!g.pinged){g.pinged=true;AU.sfx('alert');}}else{g.alert=Math.max(0,g.alert-dt/1.6);if(g.alert<.05)g.pinged=false;}
+  if(g.alert>=1){caught();}
+ }
+}
+function drawDark(R){
+ if(!R.dark)return;
+ dkc.globalCompositeOperation='source-over';dkc.clearRect(0,0,VW,VH);
+ dkc.fillStyle='rgba(5,6,26,'+R.dark+')';dkc.fillRect(0,0,VW,VH);
+ dkc.globalCompositeOperation='destination-out';
+ const hole=(x,y,r,a)=>{const g=dkc.createRadialGradient(x,y,r*.12,x,y,r);g.addColorStop(0,'rgba(0,0,0,'+a+')');g.addColorStop(1,'rgba(0,0,0,0)');dkc.fillStyle=g;dkc.fillRect(x-r,y-r,r*2,r*2);};
+ (R.lights||[]).forEach((l,i)=>hole(l[0]*T,l[1]*T,l[2]+Math.sin(t*6+i*2)*(l[4]==='w'?2:0),l[3]));
+ hole(S.x,S.y-6,S.light?82+Math.sin(t*9)*2:22,S.light?1:.8);
+ const g=gstate(S.room);if(g&&F.odalys)hole(g.x+g.dx*8,g.y-6,48,.9);
+ dkc.globalCompositeOperation='source-over';
+ ctx.drawImage(dk,0,0);
+ ctx.globalCompositeOperation='lighter';
+ const glow=(x,y,r,col)=>{const gr=ctx.createRadialGradient(x,y,2,x,y,r);gr.addColorStop(0,col);gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.fillRect(x-r,y-r,r*2,r*2);};
+ (R.lights||[]).forEach(l=>glow(l[0]*T,l[1]*T,l[2],l[4]==='w'?'rgba(255,150,60,.13)':'rgba(120,150,255,.12)'));
+ if(S.light)glow(S.x,S.y-6,80,'rgba(255,200,110,.13)');
+ ctx.globalCompositeOperation='source-over';
+}
+function render(){
+ const R=ROOMS[S.room];
+ ctx.drawImage(BASE[S.room],0,0);
+ R.objs.forEach(o=>{if(o.layer===0&&!isHidden(o))drawObj(o);});
+ (R.cover||[]).forEach(drawCover);
+ R.doors.forEach(drawDoor);
+ const dr=[];
+ R.objs.forEach(o=>{if(o.layer!==0&&o.k!=='prints'&&!isHidden(o))dr.push({y:o.deco?-5:(o.lifted?o.y*T-30:(o.y+o.h)*T),f:()=>drawObj(o)});});
+ R.npcs.forEach(n=>dr.push({y:n.y*T,f:()=>drawNpc(n)}));
+ const g=gstate(S.room);if(g&&F.odalys)dr.push({y:g.y,f:()=>drawGristle(g)});
+ dr.push({y:S.y,f:drawPlayer});
+ dr.sort((a,b)=>a.y-b.y).forEach(d=>d.f());
+ drawDark(R);
+ if(S.room==='corridor'){
+  PRINTS.forEach((p,i)=>{
+   const d=Math.hypot(S.x-p.x,S.y-p.y),a=.3+.12*Math.sin(t*3+i)+(S.light&&d<70?.35:0);
+   ctx.globalAlpha=Math.min(.95,a);rc(p.x-1,p.y-3,3,5,'#9fd8ff');rc(p.x-1,p.y+3,3,2,'#d6f0ff');rc(p.x,p.y+3,1,1,'#fff');ctx.globalAlpha=1;
+  });
+ }
+ if(S.room==='office'){for(let i=0;i<7;i++){const x=(11-i*0.8)*T,y=(6+i*0.9)*T;ctx.globalAlpha=.4+.2*Math.sin(t*3+i);rc(x,y,3,4,'#9fd8ff');ctx.globalAlpha=1;}}
+ PT.forEach(p=>{ctx.globalAlpha=Math.max(0,Math.min(1,p.l/p.m));rc(p.x,p.y,2,2,p.c);});ctx.globalAlpha=1;
+ if(S.mode==='play'&&!S.fadeTo){
+  const a=nearest();
+  if(a){const cx=a.r[0]+a.r[2]/2,ty=Math.max(10,a.r[1]-4);rc(cx-6,ty-10,12,11,'#000');rc(cx-5,ty-9,10,9,'#ffb347');ctx.fillStyle='#1a1020';ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillText('E',cx,ty-1.5);}
+ }
+ if(S.fv>0){ctx.globalAlpha=Math.min(1,S.fv);rc(0,0,VW,VH,'#05061a');ctx.globalAlpha=1;}
+}
+
+/* ---------------- END ---------------- */
+function endGame(){
+ S.mode='end';AU.sfx('win');
+ const honest=F.ending==='honest';
+ $('etitle').textContent=honest?'CASE CLOSED: THE HONEST WORD':'CASE CLOSED: THE QUILL RETURNED';
+ $('ebody').innerHTML=honest
+ ?'<p>Cassian walked into Professor Pimm\'s study with you at his side and set the Quill on the desk himself.</p><p>Pimm read the glowing page in silence. "The Quill records honest words," he said at last. "Tonight it has recorded two more." Cassian kept his badge on probation, and the Transfiguration essay was rewritten by lamplight.</p><p>Odalys and Bram threw you a midnight sweet-feast in the common room. Nib heckled from the chandelier.</p>'
+ :'<p>You carried the Whisperwrit Quill back alone and laid it on Professor Pimm\'s desk, along with a very long story.</p><p>Pimm read the glowing page and sighed. Cassian lost his prefect\'s badge by breakfast. The case was solved and the Quill was home, but your victory tasted just a little of ash.</p><p>Perhaps next time, an honest word might have been enough.</p>';
+ const m=Math.floor(S.time/60),s=Math.floor(S.time%60),found=Object.keys(S.clues).length;
+ $('estats').innerHTML='<h2>Case file</h2><p>Time: '+m+'m '+String(s).padStart(2,'0')+'s &middot; Clues: '+found+'/'+Object.keys(CLUES).length+' &middot; Caught by Mr. Gristle: '+S.caught+(S.caught===0?' (a ghost in the halls!)':'')+'</p>';
+ $('end').classList.remove('hide');
+}
+$('eagain').onclick=()=>location.reload();
+
+/* ---------------- INPUT ---------------- */
+function startGame(){
+ if(S.mode!=='title')return;
+ AU.init();$('title').classList.add('hide');banner(ROOMS.common.name);refreshUI();
+ talk(N('Midnight. The bells of Gloamwick Academy rang curfew long ago.','You, Wren Ashby, were sneaking toward the kitchens when a frantic whisper echoed down the stairs: Professor Pimm\'s Whisperwrit Quill has been stolen!','Somewhere in the dark, glowing footprints are fading. Find the thief before dawn, and before Mr. Gristle finds you.'));
+}
+$('title').onclick=startGame;
+addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+ if(k==='m'&&!e.repeat){AU.init();AU.toggle();return;}
+ if(S.mode==='title'){if(k==='enter'||k===' '||k==='e')startGame();return;}
+ if(S.mode==='dialog'){
+  if(e.repeat&&!D.ch)return;
+  if(D.ch){
+   if(['arrowup','w'].includes(k)){D.sel=(D.sel+D.ch.length-1)%D.ch.length;renderChoices();return;}
+   if(['arrowdown','s'].includes(k)){D.sel=(D.sel+1)%D.ch.length;renderChoices();return;}
+   if(/^[1-9]$/.test(k)&&+k<=D.ch.length){pick(+k-1);return;}
+  }
+  if(k==='e'||k===' '||k==='enter')advance();
+  return;
+ }
+ if(S.mode==='play'){
+  if(k==='e'||k===' '||k==='enter'){if(!e.repeat)interact();return;}
+  if(k==='1'||k==='2'||k==='3'){if(!e.repeat)cast(['lucerna','reseris','levitas'][+k-1]);return;}
+  if(k==='h'&&!e.repeat){toast('Hint: '+hint(),5200);return;}
+ }
+ keys[k]=true;
+});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+$('dlg').addEventListener('click',e=>{if(e.target.tagName!=='BUTTON'&&!D.ch)advance();});
+
+/* ---------------- BOOT ---------------- */
+Object.keys(ROOMS).forEach(bake);
+fit();refreshUI();
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);render();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
